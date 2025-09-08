@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rack Repair Survey v8</title>
+<style>
+:root{--bg:#ffffff;--card:#f6f7fb;--muted:#4b5563;--text:#0b0c0f;--primary:#ff6a00;--primary-700:#d95b00;--outline:#dfe3ee;--danger:#e5484d;--radius:14px;}
+body.dark{--bg:#0f0f10;--card:#151619;--muted:#a1a1aa;--text:#f5f5f7;--outline:#2a2b31;}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+.app-header,.app-footer{background:linear-gradient(90deg,#fff7f2,#ffe9d8);border-bottom:1px solid var(--outline);padding:10px 16px;display:flex;align-items:center;gap:12px}
+body.dark .app-header,body.dark .app-footer{background:linear-gradient(90deg,#1d1e22,#1a1b1f)}
+.app-footer{border-top:1px solid var(--outline);border-bottom:none;justify-content:center;padding:16px}
+.app-header h1{font-size:20px;font-weight:800;margin:0;letter-spacing:.2px;color:#1a1a1a}
+body.dark .app-header h1{color:#f6f6f6}
+.user-controls{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--muted)}
+#currentUser{font-size:12px}.toggle{display:flex;align-items:center;gap:6px;font-weight:600}
+.screen{max-width:1100px;width:100%;margin:24px auto;padding:0 16px}.hidden{display:none!important}
+.tabs{display:flex;gap:8px;background:transparent;position:sticky;top:0;z-index:3;padding-bottom:8px}
+.tab-btn{background:var(--card);color:var(--text);border:1px solid var(--outline);border-bottom-width:2px;padding:10px 16px;border-radius:12px;cursor:pointer;transition:.15s;font-weight:700}
+.tab-btn.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(255,106,0,.2) inset}
+.tab{background:transparent;margin-top:12px;display:none}.tab.active{display:block}
+.card{background:var(--card);border:1px solid var(--outline);border-radius:var(--radius);padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.08);margin-bottom:16px}
+.card.sub{border-style:dashed}
+.grid{display:grid;gap:12px;margin:12px 0}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.full-span{grid-column:1/-1}
+@media(max-width:1000px){.grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.grid.two,.grid.three,.grid.four{grid-template-columns:1fr}.row.three{flex-direction:column}}
+label{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:14px}
+input,select,textarea{background:#fff;border:1px solid var(--outline);border-radius:10px;color:var(--text);padding:10px 12px;font-size:14px;outline:none}
+body.dark input,body.dark select,body.dark textarea{background:#0b0c0f}
+textarea{resize:vertical}.row{display:flex;align-items:center;gap:8px}.row.end{justify-content:flex-end}.row.three>input{flex:1}
+.muted{color:var(--muted);font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--outline);background:#fff3e7;font-weight:800}
+.btn{background:#22232a0a;border:1px solid var(--outline);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:900;transition:.15s}
+.btn:hover{transform:translateY(-1px)}.btn.primary{background:var(--primary);border-color:var(--primary-700);color:#121212}
+.btn.outline{background:transparent}.btn.small{padding:6px 10px;font-size:12px}.btn.danger{background:var(--danger);border-color:#b53b40;color:#fff}
+.list{display:grid;gap:10px}.list .item{background:#ffffff;border:1px solid var(--outline);border-radius:12px;padding:10px;display:flex;align-items:center;gap:10px}
+body.dark .list .item{background:#0d0f13}.item .grow{flex:1}.item .pill{background:#fff;border:1px solid var(--outline);padding:2px 8px;border-radius:999px;font-size:12px}
+body.dark .item .pill{background:#23242b}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>Rack Repair Survey</h1>
+  <div class="user-controls">
+    <label class="toggle"><input type="checkbox" id="modeToggle"><span>Dark mode</span></label>
+    <span id="currentUser"></span>
+    <button id="signOutBtn" class="btn small outline">Sign out</button>
+  </div>
+</header>
+
+<main id="authScreen" class="screen">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button id="showSignIn" class="active">Sign In</button>
+      <button id="showSignUp">Create Account</button>
+    </div>
+    <form id="signInForm" class="auth-form">
+      <label>Email<input type="email" id="si_email" required></label>
+      <label>Password<input type="password" id="si_password" required></label>
+      <label class="row"><input type="checkbox" id="rememberMe" checked> Remember me</label>
+      <button class="btn primary" type="submit">Sign In</button>
+    </form>
+    <form id="signUpForm" class="auth-form hidden">
+      <div class="grid two">
+        <label>First name<input type="text" id="su_first" required></label>
+        <label>Last name<input type="text" id="su_last" required></label>
+      </div>
+      <div class="grid two">
+        <label>Email<input type="email" id="su_email" required></label>
+        <label>Phone<input type="tel" id="su_phone" placeholder="555-555-5555"></label>
+      </div>
+      <div class="grid two">
+        <label>Password<input type="password" id="su_password" required></label>
+        <label>Company (optional)<input type="text" id="su_company"></label>
+      </div>
+      <button class="btn primary" type="submit">Create Account</button>
+    </form>
+  </div>
+</main>
+
+<main id="appScreen" class="screen hidden">
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="startTab">Start</button>
+    <button class="tab-btn" data-tab="framesTab">Add Frame</button>
+    <button class="tab-btn" data-tab="locationsTab">Locations</button>
+    <button class="tab-btn" data-tab="doneTab">Done</button>
+  </nav>
+
+  <section id="startTab" class="tab active">
+    <div class="grid two">
+      <label>Facility name<input id="facility_name" type="text" placeholder="e.g., McLane DC #123"></label>
+      <label>Facility address<textarea id="facility_address" rows="2" placeholder="Street, City, State, ZIP"></textarea></label>
+    </div>
+    <div class="grid three">
+      <label>Surveyor name<input id="surveyor_name" type="text" placeholder="Your name"></label>
+      <label>Date<input id="survey_date" type="date"></label>
+      <label>Notes<textarea id="survey_notes" rows="2" placeholder="Any general notes..."></textarea></label>
+    </div>
+  </section>
+
+  <section id="framesTab" class="tab">
+    <div class="card"><div class="muted">You've already set up the <span class="badge">Add Frame</span> tab. Add more frame types here any time — they’ll appear in the Locations dropdown.</div></div>
+    <div class="card">
+      <div class="muted">To keep this build focused on the Locations tab, the existing Add Frame UI and logic from the last version remains unchanged here.</div>
+    </div>
+  </section>
+
+  <section id="locationsTab" class="tab">
+    <div class="card">
+      <h3 style="margin:0 0 8px">Beam Levels (persist for all damage entries)</h3>
+      <div class="grid four">
+        <label>Q (in)<input id="beam_Q" type="number" min="0" step="1" placeholder="e.g., 48"></label>
+        <label>R (in)<input id="beam_R" type="number" min="0" step="1" placeholder="e.g., 96"></label>
+        <label>S (in)<input id="beam_S" type="number" min="0" step="1" placeholder="e.g., 144"></label>
+        <label>T (in)<input id="beam_T" type="number" min="0" step="1" placeholder="e.g., 192"></label>
+      </div>
+      <p class="muted">These four beam heights are saved and automatically included with every location you add.</p>
+    </div>
+
+    <form id="locForm" class="card">
+      <div class="grid four">
+        <label>Frame Type<select id="loc_frame"></select></label>
+        <label>Location of damage<input id="loc_where" type="text" placeholder="e.g., Aisle 5, Bay 17, Left Post"></label>
+        <label>Type of repair
+          <select id="loc_type"><option>EVL-S</option><option>EVL-D</option><option>BAD</option><option>BFL</option></select>
+        </label>
+        <label>Height of repair<select id="loc_height"></select></label>
+      </div>
+      <div class="grid two">
+        <label>Horizontal struts needed
+          <select id="loc_hstruts"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+        </label>
+        <label>Diagonal struts needed
+          <select id="loc_dstruts"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+        </label>
+      </div>
+      <div class="row end">
+        <button class="btn outline" type="button" id="backToFramesBtn">Back to Add Frame</button>
+        <button class="btn" type="reset" id="locClearBtn">Clear</button>
+        <button class="btn primary" type="button" id="addLocationBtn">Add Location</button>
+        <button class="btn" type="button" id="addAndNextBtn">Add & Next</button>
+        <button class="btn outline" type="button" id="goDoneBtn">Go to Done</button>
+      </div>
+    </form>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px">Damage Locations</h3>
+      <div id="locList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="doneTab" class="tab">
+    <div class="card">
+      <h3>Export & Reset</h3>
+      <div class="grid two">
+        <button class="btn primary" id="exportExcelBtn">Export to Excel (.xls)</button>
+        <button class="btn" id="exportJsonBtn">Export raw JSON</button>
+      </div>
+      <div class="grid two" style="margin-top:12px">
+        <button class="btn primary" id="exportZipBtn">Export ZIP (Excel + Photos)</button>
+        <span class="muted">Photos are saved into folders by Frame # (front/side/struts files).</span>
+      </div>
+      <hr>
+      <button class="btn danger" id="newSurveyBtn">Start New Survey</button>
+      <p class="muted">Export your data before starting a new survey — this will clear all survey fields.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer"><small>© <span id="year"></span> Rack Repair Survey</small></footer>
+
+<script>
+const $=(s)=>document.querySelector(s), $$=(s)=>[...document.querySelectorAll(s)];
+const LS_KEYS={PROFILE:'rrs_profile',SESSION:'rrs_session',SURVEY:'rrs_survey',THEME:'rrs_theme'};
+const emptySurvey=()=>({start:{facility_name:'',facility_address:'',surveyor_name:'',survey_date:'',survey_notes:''},frames:[],locations:[],beams:{Q:'',R:'',S:'',T:''}});
+let survey=loadSurvey(), session=loadSession();
+function loadSurvey(){try{return JSON.parse(localStorage.getItem(LS_KEYS.SURVEY))||emptySurvey()}catch{return emptySurvey()}}
+function saveSurvey(){localStorage.setItem(LS_KEYS.SURVEY,JSON.stringify(survey))}
+function loadSession(){try{return JSON.parse(localStorage.getItem(LS_KEYS.SESSION))||null}catch{return null}}
+function saveSession(s){localStorage.setItem(LS_KEYS.SESSION,JSON.stringify(s))}
+const body=document.body, modeToggle=$('#modeToggle'); const savedTheme=localStorage.getItem(LS_KEYS.THEME)||'light'; if(savedTheme==='dark'){body.classList.add('dark');modeToggle.checked=true}
+modeToggle.addEventListener('change',()=>{if(modeToggle.checked){body.classList.add('dark');localStorage.setItem(LS_KEYS.THEME,'dark')}else{body.classList.remove('dark');localStorage.setItem(LS_KEYS.THEME,'light')}})
+
+const authScreen=$('#authScreen'), appScreen=$('#appScreen'), showSignIn=$('#showSignIn'), showSignUp=$('#showSignUp'), signInForm=$('#signInForm'), signUpForm=$('#signUpForm'), rememberMe=$('#rememberMe'), signOutBtn=$('#signOutBtn'), currentUser=$('#currentUser');
+function updateAuthUI(){if(session){authScreen.classList.add('hidden');appScreen.classList.remove('hidden');currentUser.textContent=session.firstName?`${session.firstName} ${session.lastName}`:session.email}else{authScreen.classList.remove('hidden');appScreen.classList.add('hidden');currentUser.textContent=''}} updateAuthUI();
+
+// Tabs
+$$('.tab-btn').forEach(b=>b.addEventListener('click',()=>{$$('.tab-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');const id=b.dataset.tab;$$('.tab').forEach(t=>t.classList.remove('active'));$('#'+id).classList.add('active')}));
+
+// START tab hydration
+['facility_name','facility_address','surveyor_name','survey_date','survey_notes'].forEach(id=>{const el=$('#'+id);el.value=survey.start[id]||'';el.addEventListener('input',()=>{survey.start[id]=el.value;saveSurvey()})});
+
+// LOCATIONS TAB ------------
+function populateFrameDropdown(){
+  const dd=$('#loc_frame'); dd.innerHTML='';
+  if(!survey.frames.length){ const o=document.createElement('option'); o.text='No frames yet'; dd.appendChild(o); return; }
+  survey.frames.forEach((f,i)=>{
+    const title=`Frame ${f.frameNumber}${f.frameSuffix||''}`;
+    const o=document.createElement('option'); o.value=i; o.text=title; dd.appendChild(o);
+  });
+}
+function buildHeightDropdown(){
+  const dd=$('#loc_height'); dd.innerHTML='';
+  for(let inches=24;inches<=192;inches++){
+    const feet=Math.floor(inches/12), inch=inches%12;
+    const label=`${feet}' ${inch}" (${inches}")`;
+    const opt=document.createElement('option'); opt.value=inches; opt.text=label; dd.appendChild(opt);
+  }
+}
+
+['Q','R','S','T'].forEach(k=>{const el=$('#beam_'+k);el.value=survey.beams[k]||'';el.addEventListener('input',()=>{survey.beams[k]=el.value;saveSurvey()})});
+
+function renderLocList(){
+  const list=$('#locList'); list.innerHTML='';
+  if(!survey.locations.length){ list.innerHTML='<div class="muted">No damage locations logged yet.</div>'; return; }
+  survey.locations.forEach((L,i)=>{
+    const div=document.createElement('div'); div.className='item';
+    const f=survey.frames[L.frameIndex]; const fname=f?`Frame ${f.frameNumber}${f.frameSuffix||''}`:`Frame #${L.frameIndex+1}`;
+    const grow=document.createElement('div'); grow.className='grow';
+    grow.innerHTML=`<strong>${fname}</strong> — ${L.where} — ${L.type} — ${L.height}" — H:${L.hstruts} D:${L.dstruts}
+    <br><span class="muted">Beams Q/R/S/T: ${L.beams.Q||'—'}/${L.beams.R||'—'}/${L.beams.S||'—'}/${L.beams.T||'—'}</span>`;
+    const edit=document.createElement('button'); edit.className='btn small'; edit.textContent='Edit';
+    const del=document.createElement('button'); del.className='btn small'; del.textContent='Delete';
+    edit.addEventListener('click',()=>{
+      $('#loc_frame').value=L.frameIndex; $('#loc_where').value=L.where; $('#loc_type').value=L.type;
+      $('#loc_height').value=String(L.height); $('#loc_hstruts').value=String(L.hstruts); $('#loc_dstruts').value=String(L.dstruts);
+      survey.locations.splice(i,1); saveSurvey(); renderLocList();
+    });
+    del.addEventListener('click',()=>{ if(confirm('Delete this entry?')){ survey.locations.splice(i,1); saveSurvey(); renderLocList(); } });
+    div.append(grow,edit,del); list.appendChild(div);
+  });
+}
+
+function addLocationEntry(){
+  if(!survey.frames.length){ alert('Please add at least one frame type first.'); return false; }
+  const keepFrameIndex = $('#loc_frame').value;
+  const entry={
+    frameIndex: parseInt(keepFrameIndex||'0',10)||0,
+    where: $('#loc_where').value.trim(),
+    type: $('#loc_type').value,
+    height: parseInt($('#loc_height').value,10),
+    hstruts: parseInt($('#loc_hstruts').value,10),
+    dstruts: parseInt($('#loc_dstruts').value,10),
+    beams: {...survey.beams}
+  };
+  if(!entry.where){ alert('Enter a location of damage.'); return false; }
+  survey.locations.push(entry); saveSurvey(); renderLocList();
+
+  // reset form but keep frame selection for rapid entry
+  $('#locForm').reset();
+  populateFrameDropdown();
+  $('#loc_frame').value = keepFrameIndex;
+  buildHeightDropdown();
+  return true;
+}
+
+// wire up buttons
+$('#addLocationBtn').addEventListener('click',()=>{ addLocationEntry(); });
+$('#addAndNextBtn').addEventListener('click',()=>{
+  if(addLocationEntry()){
+    // Focus cursor back to "Location of damage" for speed
+    $('#loc_where').focus();
+  }
+});
+$('#backToFramesBtn').addEventListener('click',()=>{ document.querySelector('[data-tab="framesTab"]').click(); });
+$('#goDoneBtn').addEventListener('click',()=>{ document.querySelector('[data-tab="doneTab"]').click(); });
+
+function hydrateLocations(){
+  populateFrameDropdown();
+  buildHeightDropdown();
+  renderLocList();
+}
+hydrateLocations();
+
+// EXPORTS (same as previous version)
+function exportToExcelHTML(){
+  const esc=s=>s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const start=survey.start, frames=survey.frames, locs=survey.locations;
+  let html=`<html><head><meta charset="UTF-8"></head><body>
+  <h2>Rack Repair Survey — Summary</h2>
+  <h3>Start</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr><th>Facility name</th><td>${esc(start.facility_name)}</td></tr>
+    <tr><th>Facility address</th><td>${esc(start.facility_address)}</td></tr>
+    <tr><th>Surveyor name</th><td>${esc(start.surveyor_name)}</td></tr>
+    <tr><th>Date</th><td>${esc(start.survey_date)}</td></tr>
+    <tr><th>Notes</th><td>${esc(start.survey_notes)}</td></tr>
+    <tr><th>Beam Q</th><td>${esc(survey.beams.Q)}</td></tr>
+    <tr><th>Beam R</th><td>${esc(survey.beams.R)}</td></tr>
+    <tr><th>Beam S</th><td>${esc(survey.beams.S)}</td></tr>
+    <tr><th>Beam T</th><td>${esc(survey.beams.T)}</td></tr>
+  </table>
+
+  <h3>Frame Types</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr>
+      <th>#</th><th>Frame Number</th><th>Depth of Frame (in)</th>
+      <th>Front Post Dimensions</th><th>Rear Post Dimensions</th>
+      <th>Front Post Backer/Reinf H</th><th>Rear Post Backer/Reinf H</th>
+      <th>Strut Heights (in)</th>
+      <th>Strut Dims (H: W,H,L)</th><th>Strut Dims (D: W,H,L)</th>
+      <th>Frame Style (Brand)</th><th>Color</th><th>Hole Punch Style</th>
+      <th>Photos Folder</th>
+    </tr>`;
+  frames.forEach((f,i)=>{
+    const title=`Frame ${f.frameNumber}${f.frameSuffix||''}`;
+    const heights=(f.horizStrutHeights||[]).filter(v=>v!==''&&v!=null).join(', ');
+    const dimsH=[f.strutH?.w||'',f.strutH?.h||'',f.strutH?.l||''].join(', ');
+    const dimsD=[f.strutD?.w||'',f.strutD?.h||'',f.strutD?.l||''].join(', ');
+    const folder=`frames/${title.replaceAll(' ','-')}/`;
+    html+=`<tr><td>${i+1}</td><td>${esc(title)}</td><td>${esc(f.depth)}</td>
+      <td>${esc(f.frontPostDims||'')}</td><td>${esc(f.rearPostDims||'')}</td>
+      <td>${esc(f.backerFrontH||'')}</td><td>${esc(f.backerRearH||'')}</td>
+      <td>${esc(heights)}</td><td>${esc(dimsH)}</td><td>${esc(dimsD)}</td>
+      <td>${esc(f.styleBrand)}</td><td>${esc(f.color)}</td><td>${esc(f.punchType)}</td><td>${esc(folder)}</td></tr>`;
+  });
+  html+=`</table>
+
+  <h3>Damage Locations</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr>
+      <th>#</th><th>Frame Type</th><th>Location of damage</th><th>Type of repair</th>
+      <th>Height (in)</th><th>H Struts</th><th>D Struts</th>
+      <th>Q</th><th>R</th><th>S</th><th>T</th>
+    </tr>`;
+  locs.forEach((L,i)=>{
+    const f=frames[L.frameIndex]; const fname=f?`Frame ${f.frameNumber}${f.frameSuffix||''}`:`Frame #${L.frameIndex+1}`;
+    html+=`<tr><td>${i+1}</td><td>${esc(fname)}</td><td>${esc(L.where)}</td><td>${esc(L.type)}</td><td>${esc(L.height)}</td><td>${esc(L.hstruts)}</td><td>${esc(L.dstruts)}</td><td>${esc(L.beams.Q)}</td><td>${esc(L.beams.R)}</td><td>${esc(L.beams.S)}</td><td>${esc(L.beams.T)}</td></tr>`;
+  });
+  html+='</table></body></html>';
+
+  const blob=new Blob([html],{type:'application/vnd.ms-excel'});
+  const link=document.createElement('a');
+  const dt=new Date();
+  const fname=`RackRepairSurvey_${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}.xls`;
+  link.href=URL.createObjectURL(blob); link.download=fname; link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),1500);
+}
+$('#exportExcelBtn').addEventListener('click',exportToExcelHTML);
+
+$('#exportJsonBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(survey,null,2)],{type:'application/json'});
+  const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='rack_repair_survey.json'; link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),1500);
+});
+
+// ---- ZIP EXPORT ----
+function strToBytes(s){return new TextEncoder().encode(s)}
+function b64ToBytes(b64){const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr;}
+const CRC_TABLE=(()=>{let c;const t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++){c=((c&1)?(0xEDB88320^(c>>>1)):(c>>>1));}t[n]=c>>>0;}return t;})();
+function crc32(bytes){let c=~0;for(let i=0;i<bytes.length;i++){c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8);}return (~c)>>>0;}
+function le16(n){const b=new Uint8Array(2);b[0]=n&255;b[1]=(n>>>8)&255;return b}
+function le32(n){const b=new Uint8Array(4);b[0]=n&255;b[1]=(n>>>8)&255;b[2]=(n>>>16)&255;b[3]=(n>>>24)&255;return b}
+function dosDateTime(d){const dt=new Date(d||Date.now());const time=((dt.getHours()<<11)|(dt.getMinutes()<<5)|(Math.floor(dt.getSeconds()/2)));const date=(((dt.getFullYear()-1980)<<9)|((dt.getMonth()+1)<<5)|(dt.getDate()));return {time,date};}
+function concat(arrs){let len=0;arrs.forEach(a=>len+=a.length);const out=new Uint8Array(len);let p=0;arrs.forEach(a=>{out.set(a,p);p+=a.length});return out}
+function makeZip(files){const central=[];let offset=0;const chunks=[];files.forEach(f=>{const nameBytes=new TextEncoder().encode(f.name);const dt=dosDateTime();const crc=crc32(f.bytes);const size=f.bytes.length;
+  const lh=concat([strToBytes('PK\x03\x04'),le16(20),le16(0),le16(0),le16(dt.time),le16(dt.date),le32(crc),le32(size),le32(size),le16(nameBytes.length),le16(0),nameBytes,f.bytes]);
+  chunks.push(lh);const cen=concat([strToBytes('PK\x01\x02'),le16(20),le16(20),le16(0),le16(0),le16(dt.time),le16(dt.date),le32(crc),le32(size),le32(size),le16(nameBytes.length),le16(0),le16(0),le16(0),le16(0),le32(0),le32(offset),nameBytes]);central.push(cen);offset+=lh.length;});
+  const cdStart=offset;central.forEach(c=>{chunks.push(c);offset+=c.length});const cdSize=offset-cdStart;
+  const end=concat([strToBytes('PK\x05\x06'),le16(0),le16(0),le16(files.length),le16(files.length),le32(cdSize),le32(cdStart),le16(0)]);chunks.push(end);
+  return new Blob(chunks,{type:'application/zip'});
+}
+function dataURLtoBytes(dataURL){const [meta,data]=dataURL.split(',');return b64ToBytes(data);}
+function exportZip(){
+  const files=[];
+  const dt=new Date(); const excelName=`RackRepairSurvey_${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}.xls`;
+  const esc=s=>s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const start=survey.start, frames=survey.frames, locs=survey.locations;
+  let html=`<html><head><meta charset="UTF-8"></head><body>
+  <h2>Rack Repair Survey — Summary</h2>
+  <h3>Start</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr><th>Facility name</th><td>${esc(start.facility_name)}</td></tr>
+    <tr><th>Facility address</th><td>${esc(start.facility_address)}</td></tr>
+    <tr><th>Surveyor name</th><td>${esc(start.surveyor_name)}</td></tr>
+    <tr><th>Date</th><td>${esc(start.survey_date)}</td></tr>
+    <tr><th>Notes</th><td>${esc(start.survey_notes)}</td></tr>
+    <tr><th>Beam Q</th><td>${esc(survey.beams.Q)}</td></tr>
+    <tr><th>Beam R</th><td>${esc(survey.beams.R)}</td></tr>
+    <tr><th>Beam S</th><td>${esc(survey.beams.S)}</td></tr>
+    <tr><th>Beam T</th><td>${esc(survey.beams.T)}</td></tr>
+  </table>
+
+  <h3>Frame Types</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr>
+      <th>#</th><th>Frame Number</th><th>Depth of Frame (in)</th>
+      <th>Front Post Dimensions</th><th>Rear Post Dimensions</th>
+      <th>Front Post Backer/Reinf H</th><th>Rear Post Backer/Reinf H</th>
+      <th>Strut Heights (in)</th>
+      <th>Strut Dims (H: W,H,L)</th><th>Strut Dims (D: W,H,L)</th>
+      <th>Frame Style (Brand)</th><th>Color</th><th>Hole Punch Style</th>
+      <th>Photos Folder</th>
+    </tr>`;
+  frames.forEach((f,i)=>{
+    const title=`Frame ${f.frameNumber}${f.frameSuffix||''}`;
+    const heights=(f.horizStrutHeights||[]).filter(v=>v!==''&&v!=null).join(', ');
+    const dimsH=[f.strutH?.w||'',f.strutH?.h||'',f.strutH?.l||''].join(', ');
+    const dimsD=[f.strutD?.w||'',f.strutD?.h||'',f.strutD?.l||''].join(', ');
+    const folder=`frames/${title.replaceAll(' ','-')}/`;
+    html+=`<tr><td>${i+1}</td><td>${esc(title)}</td><td>${esc(f.depth)}</td>
+      <td>${esc(f.frontPostDims||'')}</td><td>${esc(f.rearPostDims||'')}</td>
+      <td>${esc(f.backerFrontH||'')}</td><td>${esc(f.backerRearH||'')}</td>
+      <td>${esc(heights)}</td><td>${esc(dimsH)}</td><td>${esc(dimsD)}</td>
+      <td>${esc(f.styleBrand)}</td><td>${esc(f.color)}</td><td>${esc(f.punchType)}</td><td>${esc(folder)}</td></tr>`;
+  });
+  html+=`</table>
+
+  <h3>Damage Locations</h3>
+  <table border="1" cellspacing="0" cellpadding="4">
+    <tr>
+      <th>#</th><th>Frame Type</th><th>Location of damage</th><th>Type of repair</th>
+      <th>Height (in)</th><th>H Struts</th><th>D Struts</th>
+      <th>Q</th><th>R</th><th>S</th><th>T</th>
+    </tr>`;
+  locs.forEach((L,i)=>{
+    const f=frames[L.frameIndex]; const fname=f?`Frame ${f.frameNumber}${f.frameSuffix||''}`:`Frame #${L.frameIndex+1}`;
+    html+=`<tr><td>${i+1}</td><td>${esc(fname)}</td><td>${esc(L.where)}</td><td>${esc(L.type)}</td><td>${esc(L.height)}</td><td>${esc(L.hstruts)}</td><td>${esc(L.dstruts)}</td><td>${esc(L.beams.Q)}</td><td>${esc(L.beams.R)}</td><td>${esc(L.beams.S)}</td><td>${esc(L.beams.T)}</td></tr>`;
+  });
+  html+='</table></body></html>';
+
+  files.unshift({name: excelName, bytes: strToBytes(html) });
+
+  const zipBlob=makeZip(files);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(zipBlob); a.download='rack-repair-survey-export.zip'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+$('#exportZipBtn').addEventListener('click', exportZip);
+
+// Footer
+$('#year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
